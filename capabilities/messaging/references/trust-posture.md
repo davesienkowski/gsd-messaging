@@ -24,10 +24,22 @@ one sanctioned reaction to a recognized doorbell (re-read its own store).
 
 ## What the capability does with it
 
-Nothing to build. Configure the Claude Code inbound rules (crossSessionInbound / deny rules) to your
-comfort and rely on the shipped posture. This capability's own conventions (escalation is
-query/answer only; the doorbell is a re-read signal only) keep every message on the safe side of the
-gate by construction.
+Nothing to build. Rely on the shipped posture and the coarse controls Claude Code actually exposes
+(confirmed against code.claude.com/docs/en/cross-session-messaging and settings):
+
+- `crossSessionInbound`: a GLOBAL per-receiver posture - `accept` / `hold` / `refuse`. It is NOT a
+  per-sender allowlist; there is no platform rule keyed to sender identity. A message carries only the
+  sender's session name and a reply address.
+- Default when unset: a receiver that prompts for permissions delivers each message (holding only one
+  from a sender that bypasses prompts); a receiver that bypasses prompts holds each message for your
+  approval.
+- `isolatePeerMachines: true`: require approval before any message leaves this machine.
+- Permission deny rules for `SendMessage` / `ListAgents`: the off switch for sending/listing.
+
+Per-sender trust is therefore RECEIVER MODEL JUDGMENT on a session name, not a platform gate. This
+capability's own conventions (escalation is query/answer only; the doorbell is a re-read signal only)
+keep every message on the safe side regardless, and the strong exception is the `main`/spawner
+relationship: an in-process executor trusting its own orchestrator address is not spoofable by a peer.
 
 ## Residual vectors (later pass, not blocking)
 

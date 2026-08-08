@@ -80,11 +80,24 @@ Then enable what you want (all default-off):
 ## Not here (yet): AFK checkpoint delegation (idea #9)
 
 An autonomous executor delegating a scoped decision to a designated decider reuses the escalation
-channel, and for a human-decider-via-Remote-Control target it is shippable on top of what is here. The
-fully-autonomous-decider case is a small follow-on build that hardens the trust edge: a
-config-enforced sender allowlist (Claude Code `crossSessionInbound` allow/deny by sender identity, not
-receiver model judgment alone), a scoped decision policy, and an AFK decision audit log. It is
-deliberately not in this default-off thin release.
+channel. It splits cleanly by target:
+
+- **Human decider via Remote Control**: shippable on top of what is here. Inject the Remote Control
+  session as the executor's decider address; the human answers from their phone.
+- **Fully autonomous (agent) decider**: the honest limit, confirmed against the Claude Code docs, is
+  that there is NO platform per-sender allowlist to lean on. `crossSessionInbound` is a GLOBAL posture
+  (`accept` / `hold` / `refuse`), not a rule keyed to sender identity; a message carries only the
+  sender's session name and a reply address. So "only accept a decision from decider X" is enforceable
+  at the platform layer only as: the strong, non-spoofable `main`/spawner relationship (an in-process
+  executor trusting its own orchestrator) - which IS solid - plus, for cross-session, the coarse
+  controls `crossSessionInbound` (global), `isolatePeerMachines` (cross-machine approval), and
+  `SendMessage`/`ListAgents` deny rules. Per-sender trust across sessions is therefore receiver
+  MODEL judgment on a weakly-authenticated session name, not a platform gate.
+
+The follow-on build reflects that reality: keep the decider on the strong `main`/spawner axis where
+possible; for cross-session, add a scoped decision policy and an AFK decision AUDIT LOG (so every
+unattended decision is reviewable after the fact) rather than pretending a hard identity allowlist
+exists. It is deliberately not in this default-off thin release.
 
 ## Status
 
