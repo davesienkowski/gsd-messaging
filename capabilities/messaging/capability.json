@@ -45,6 +45,21 @@
       "type": "string",
       "default": "2.1.224",
       "description": "Minimum Claude Code version required to activate any messaging feature (stable session resume + cross-session messaging). Fails closed to no-op on any runtime reporting an older or unknown version. Platform additionally gated to macOS/Linux."
+    },
+    "messaging.afk.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, an autonomous orchestrator (e.g. gsd-autonomous) resolves an executor's delegated checkpoint using the AFK decider protocol (templates/afk-decider.md): classify against the scoped policy, decide within bounds or escalate to a human, and write an audit record either way. Because Claude Code has no platform sender allowlist, accountability is the audit log, not identity gating; keep the decider on the strong main/spawner axis. Requires messaging.enabled."
+    },
+    "messaging.afk.policy_path": {
+      "type": "string",
+      "default": ".planning/afk-decision-policy.json",
+      "description": "Path (relative to the project root) of the scoped decision policy the autonomous decider classifies against. Copy capabilities/messaging/policy/afk-decision-policy.example.json here and tune. Unmatched decision classes escalate to a human by default."
+    },
+    "messaging.afk.audit_log_path": {
+      "type": "string",
+      "default": ".planning/afk-decisions.jsonl",
+      "description": "Path (relative to the project root) of the append-only AFK decision audit log. Every unattended decision - auto or escalated - is recorded here via scripts/afk-decision-log.cjs. Review with `afk-decision-log.cjs verify`."
     }
   },
   "steps": [],

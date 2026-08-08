@@ -76,11 +76,27 @@ test('documented payload files exist on disk', () => {
     'references/escalation-query-channel.md',
     'references/learning-doorbell.md',
     'references/trust-posture.md',
+    'references/afk-decider.md',
     'templates/escalation-executor-brief.md',
     'templates/doorbell-receiver-convention.md',
+    'templates/afk-decider.md',
+    'policy/afk-decision-policy.example.json',
+    'scripts/afk-decision-log.cjs',
     'sessions/gsd-sessions.mjs',
   ];
   for (const rel of required) {
     assert.ok(fs.existsSync(path.join(CAP_DIR, rel)), `missing payload file: ${rel}`);
+  }
+});
+
+test('the example AFK policy is well-formed', () => {
+  const policy = JSON.parse(fs.readFileSync(path.join(CAP_DIR, 'policy', 'afk-decision-policy.example.json'), 'utf8'));
+  assert.equal(policy.default_when_unmatched, 'escalate_to_human', 'unmatched classes must escalate');
+  assert.ok(Array.isArray(policy.auto_decidable) && policy.auto_decidable.length > 0);
+  assert.ok(Array.isArray(policy.escalate_to_human) && policy.escalate_to_human.length > 0);
+  for (const c of policy.auto_decidable) {
+    assert.equal(typeof c.class, 'string');
+    assert.equal(typeof c.when, 'string');
+    assert.equal(typeof c.bound, 'string', `auto_decidable class ${c.class} must carry a bound`);
   }
 });

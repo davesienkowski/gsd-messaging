@@ -1,0 +1,35 @@
+{
+  "_comment": "Scoped decision policy for AFK (unattended) delegation. The autonomous decider classifies each grey-area checkpoint against this policy. Only classes in auto_decidable may be resolved without a human; everything in escalate_to_human (and anything unmatched) must go to a human decider (e.g. a Remote Control session). Every decision - auto OR escalated - is written to the audit log. This is an example; copy it to your policy_path and tune.",
+  "version": "0.1.0",
+  "default_when_unmatched": "escalate_to_human",
+  "auto_decidable": [
+    {
+      "class": "equivalent-implementation-approach",
+      "when": "Two or more approaches are functionally equivalent and reversible (e.g. loop vs formula, equivalent library helpers), with no security, cost, data-loss, or public-API impact.",
+      "bound": "Pick the simpler/more-conventional option. If any option changes an interface, a dependency, or a persisted format, do NOT auto-decide."
+    },
+    {
+      "class": "silent-spec-default",
+      "when": "The spec is silent on a low-stakes default (a log level, an internal file name, ordering of independent steps) and any reasonable choice is acceptable.",
+      "bound": "Pick the least-surprising default and record the assumption. Never auto-decide a default that is hard to change later."
+    }
+  ],
+  "escalate_to_human": [
+    {
+      "class": "security-or-trust-impact",
+      "when": "The decision touches auth, permissions, secrets, sandboxing, or trust boundaries."
+    },
+    {
+      "class": "irreversible-or-destructive",
+      "when": "The decision deletes data, rewrites history, or is otherwise hard to undo."
+    },
+    {
+      "class": "cost-or-scope-change",
+      "when": "The decision materially changes cost, scope, a public API, or a persisted data format."
+    },
+    {
+      "class": "ambiguous-requirement",
+      "when": "The right answer depends on product intent the executor cannot infer."
+    }
+  ]
+}

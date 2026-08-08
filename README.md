@@ -35,6 +35,12 @@ events, which makes it even thinner than a hook-based capability.
    `capabilities/messaging/sessions/gsd-sessions.mjs`.
 4. **Trust posture.** Shipped in Claude Code; this capability configures and relies on it, does not
    reinvent it. `capabilities/messaging/references/trust-posture.md`.
+5. **AFK checkpoint delegation.** An autonomous orchestrator resolves an executor's delegated
+   grey-area checkpoint using a scoped decision policy, decides within bounds or escalates to a human,
+   and writes every unattended decision to an append-only audit log. Since Claude Code has no platform
+   sender allowlist, the audit log - not identity gating - is the accountability substrate. See
+   `capabilities/messaging/references/afk-decider.md`, `templates/afk-decider.md`,
+   `policy/afk-decision-policy.example.json`, and `scripts/afk-decision-log.cjs`.
 
 ## Install
 
@@ -45,9 +51,13 @@ Then enable what you want (all default-off):
     gsd config set messaging.enabled true
     gsd config set messaging.escalation.enabled true
     gsd config set messaging.doorbell.enabled true
+    gsd config set messaging.afk.enabled true          # autonomous decider + audit log (advanced)
 
 `settings.snippet.json` shows the same toggles for manual/federated config. There is no Claude Code
 `settings.json` hook to register - this capability ships none.
+
+The AFK feature also reads `messaging.afk.policy_path` (copy `policy/afk-decision-policy.example.json`
+there and tune) and appends to `messaging.afk.audit_log_path`.
 
 ## Try it
 
@@ -77,28 +87,34 @@ Then enable what you want (all default-off):
   (it keeps today's plan-phase-start read). Fail-open, never wrong.
 - **Interview is scoped** to idle/blocked/completed agents only, never one mid-unit-of-work.
 
-## Not here (yet): AFK checkpoint delegation (idea #9)
+## AFK checkpoint delegation (idea #9) - the trust edge, done honestly
 
-An autonomous executor delegating a scoped decision to a designated decider reuses the escalation
-channel. It splits cleanly by target:
+An autonomous executor delegating a scoped decision to a decider reuses the escalation channel. The
+honest constraint, confirmed against the Claude Code docs: there is NO platform per-sender allowlist.
+`crossSessionInbound` is a GLOBAL posture (`accept` / `hold` / `refuse`), not keyed to sender identity;
+a message carries only the sender's session name and a reply address. So "only accept a decision from
+decider X" is strong ONLY on the `main`/spawner axis (an in-process executor trusting its own
+orchestrator); across sessions, per-sender trust is receiver model judgment on a weakly-authenticated
+name, backed by the coarse controls `crossSessionInbound`, `isolatePeerMachines`, and
+`SendMessage`/`ListAgents` deny rules.
 
-- **Human decider via Remote Control**: shippable on top of what is here. Inject the Remote Control
-  session as the executor's decider address; the human answers from their phone.
-- **Fully autonomous (agent) decider**: the honest limit, confirmed against the Claude Code docs, is
-  that there is NO platform per-sender allowlist to lean on. `crossSessionInbound` is a GLOBAL posture
-  (`accept` / `hold` / `refuse`), not a rule keyed to sender identity; a message carries only the
-  sender's session name and a reply address. So "only accept a decision from decider X" is enforceable
-  at the platform layer only as: the strong, non-spoofable `main`/spawner relationship (an in-process
-  executor trusting its own orchestrator) - which IS solid - plus, for cross-session, the coarse
-  controls `crossSessionInbound` (global), `isolatePeerMachines` (cross-machine approval), and
-  `SendMessage`/`ListAgents` deny rules. Per-sender trust across sessions is therefore receiver
-  MODEL judgment on a weakly-authenticated session name, not a platform gate.
+Rather than pretend an allowlist exists, this capability makes the audit log the accountability
+substrate. When `messaging.afk.enabled` is true, the decider:
 
-The follow-on build reflects that reality: keep the decider on the strong `main`/spawner axis where
-possible; for cross-session, add a scoped decision policy and an AFK decision AUDIT LOG (so every
-unattended decision is reviewable after the fact) rather than pretending a hard identity allowlist
-exists. It is deliberately not in this default-off thin release.
+1. classifies each delegated checkpoint against a scoped policy
+   (`policy/afk-decision-policy.example.json`) - `auto_decidable` classes carry a `bound`, everything
+   else escalates to a human;
+2. writes an audit record for every decision (auto or escalated) via
+   `scripts/afk-decision-log.cjs` (append-only JSONL, schema-validated, `verify` re-checks the log);
+3. only then replies. No audit record, no reply.
+
+The simplest shippable form is a HUMAN decider reachable via Remote Control - inject the RC session as
+the executor's decider and keep the log on. The policy and log matter most when the decider itself is
+autonomous. See `capabilities/messaging/references/afk-decider.md`.
+
+Still out of scope: durable coordination (locks, intents, ledgers) belongs in `.planning` /
+`fleet_*`, not messaging.
 
 ## Status
 
-BETA, `0.1.0`. Validated by spike; see the design brief that produced it. MIT licensed.
+BETA, `0.1.0`. Validated by spike (design brief steps 4-8). MIT licensed.
