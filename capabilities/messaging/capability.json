@@ -63,6 +63,16 @@
     }
   },
   "steps": [],
-  "contributions": [],
+  "contributions": [
+    {
+      "point": "execute:wave:pre",
+      "into": "executor",
+      "fragment": { "path": "contributions/executor-escalation.md" },
+      "produces": [],
+      "consumes": [],
+      "when": "messaging.escalation.enabled",
+      "onError": "skip"
+    }
+  ],
   "gates": []
 }

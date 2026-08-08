@@ -80,13 +80,45 @@ test('documented payload files exist on disk', () => {
     'templates/escalation-executor-brief.md',
     'templates/doorbell-receiver-convention.md',
     'templates/afk-decider.md',
+    'templates/doorbell-receiver-convention.md',
     'policy/afk-decision-policy.example.json',
     'scripts/afk-decision-log.cjs',
+    'contributions/executor-escalation.md',
     'sessions/gsd-sessions.mjs',
   ];
   for (const rel of required) {
     assert.ok(fs.existsSync(path.join(CAP_DIR, rel)), `missing payload file: ${rel}`);
   }
+});
+
+test('the executor escalation contribution is well-shaped and wired to a real loop point', () => {
+  // Mirrors the invariants gsd-core's validateCapability enforces (verified: 0 errors against the
+  // real validator), kept self-contained so the standalone repo needs no gsd-core checkout.
+  const LOOP_POINTS = new Set([
+    'discuss:pre', 'discuss:post', 'plan:pre', 'plan:post', 'execute:pre',
+    'execute:wave:pre', 'execute:wave:post', 'execute:post', 'verify:pre', 'verify:post',
+    'ship:pre', 'ship:post',
+  ]);
+  const ROLES_BY_POINT = {
+    'execute:pre': ['executor', 'verifier'],
+    'execute:wave:pre': ['executor', 'verifier'],
+    'execute:wave:post': ['executor', 'verifier'],
+    'execute:post': ['executor', 'verifier'],
+    'discuss:pre': ['orchestrator'], 'discuss:post': ['orchestrator'],
+    'verify:pre': ['orchestrator'], 'verify:post': ['orchestrator'],
+    'ship:pre': ['orchestrator'], 'ship:post': ['orchestrator'],
+    'plan:pre': ['researcher', 'planner', 'checker'], 'plan:post': ['researcher', 'planner', 'checker'],
+  };
+  assert.ok(Array.isArray(cap.contributions) && cap.contributions.length === 1);
+  const c = cap.contributions[0];
+  assert.ok(LOOP_POINTS.has(c.point), `point ${c.point} must be a real loop point`);
+  assert.ok((ROLES_BY_POINT[c.point] || []).includes(c.into), `into ${c.into} must be a role at ${c.point}`);
+  assert.ok(['skip', 'halt'].includes(c.onError), 'onError must be skip or halt');
+  assert.ok(Object.prototype.hasOwnProperty.call(cap.config, c.when), `when ${c.when} must be a declared config key`);
+  assert.ok(c.fragment && typeof c.fragment.path === 'string', 'fragment must reference a path');
+  assert.ok(fs.existsSync(path.join(CAP_DIR, c.fragment.path)), `fragment file ${c.fragment.path} must exist`);
+  const body = fs.readFileSync(path.join(CAP_DIR, c.fragment.path), 'utf8');
+  assert.match(body, /ESCALATION:/, 'fragment must teach the ESCALATION: dual-surface marker');
 });
 
 test('the example AFK policy is well-formed', () => {

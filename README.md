@@ -24,8 +24,11 @@ events, which makes it even thinner than a hook-based capability.
    question mid-flight instead of guessing, and resumes on the reply. An orchestrator can interview a
    blocked/idle/completed agent's reasoning read-only instead of parsing its transcript. Interview is
    the read-only sibling of escalation - same mechanism.
-   See `capabilities/messaging/references/escalation-query-channel.md` and
-   `capabilities/messaging/templates/escalation-executor-brief.md`.
+   **This one auto-fires:** when `messaging.escalation.enabled` is true, the executor instructions
+   (`contributions/executor-escalation.md`) are injected automatically into every gsd-executor at the
+   `execute:wave:pre` loop point via a capability contribution - no manual wiring, no gsd-core edit.
+   Validated against gsd-core's own `validateCapability` (0 errors). See also
+   `references/escalation-query-channel.md` and `templates/escalation-executor-brief.md`.
 2. **Learning doorbell.** After `/gsd-extract-learnings` writes the durable store, ring self-owned
    sibling sessions to re-read it now. A doorbell only; the learning itself is never sent. See
    `capabilities/messaging/references/learning-doorbell.md` and
