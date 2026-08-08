@@ -1,0 +1,26 @@
+{
+  "name": "gsd-messaging",
+  "version": "0.1.0",
+  "description": "Inter-agent messaging: a default-off, Claude-Code-only GSD capability adding live escalation, agent interview, and a learning doorbell on top of Claude Code's shipped SendMessage/ListAgents primitives. No engine changes, no host hook.",
+  "license": "MIT",
+  "author": "Dave Sienkowski",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davesienkowski/gsd-messaging"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "sessions": "node capabilities/messaging/sessions/gsd-sessions.mjs"
+  },
+  "keywords": [
+    "gsd",
+    "claude-code",
+    "capability",
+    "inter-agent-messaging",
+    "escalation",
+    "learning-doorbell"
+  ]
+}

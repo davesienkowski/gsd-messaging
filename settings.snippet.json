@@ -1,0 +1,8 @@
+{
+  "_comment": "Unlike a hook-based capability, gsd-messaging registers NO Claude Code settings.json hook - escalation and the doorbell fire inside GSD workflow turns, not host lifecycle events. There is nothing to hand-register here. This snippet instead shows the GSD config toggles (all default-off) that `gsd capability install messaging` sets for you; merge into your GSD federated config (.planning/config.json or ~/.gsd/defaults.json) only if you are enabling manually.",
+  "messaging.enabled": true,
+  "messaging.escalation.enabled": true,
+  "messaging.doorbell.enabled": true,
+  "messaging.doorbell.sibling_filter": "gsd-*",
+  "messaging.min_claude_code_version": "2.1.224"
+}

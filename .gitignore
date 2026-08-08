@@ -1,0 +1,8 @@
+node_modules/
+*.log
+.DS_Store
+# Generated baton artifact (written into a CONSUMER repo at handover time, never here).
+HANDOVER.md
+# Scratch / local test detritus.
+scratchpad/
+*.tmp

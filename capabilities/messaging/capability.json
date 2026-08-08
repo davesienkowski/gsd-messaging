@@ -1,0 +1,53 @@
+{
+  "id": "messaging",
+  "role": "feature",
+  "version": "0.1.0",
+  "title": "Inter-agent messaging (escalation, interview, learning doorbell)",
+  "description": "Default-off, BETA, claude-only capability that adds live coordination between GSD sessions and agents on top of Claude Code's shipped inter-agent messaging (SendMessage + ListAgents + resume-from-transcript). It packages three thin conventions, no engine changes: (1) an escalation/query channel where a blocked executor asks its orchestrator a scoped checkpoint question mid-flight instead of guessing, and where an orchestrator can interview a blocked/idle/completed agent's reasoning read-only instead of parsing its transcript; (2) a learning doorbell that, after /gsd-extract-learnings writes to the durable learnings store, rings self-owned sibling GSD sessions to re-read the store now (a doorbell only, never the learning itself); (3) a read-only /gsd-sessions conductor view of your live sessions. The security posture (every inbound message is untrusted data, never a command) is Claude Code's shipped message framing plus the receiver's own judgment; this capability configures and relies on it, it does not reinvent it. Durable .planning state and the learnings store remain the single source of truth (messaging is a doorbell, not a database). On any non-Claude runtime, below the version floor, or when disabled, behaviour is byte-identical to today (executors finish-and-report, learnings are read at plan-phase start only).",
+  "tier": "full",
+  "requires": [],
+  "engines": {
+    "gsd": ">=1.9.0"
+  },
+  "runtimeCompat": {
+    "supported": [
+      "claude"
+    ],
+    "unsupported": []
+  },
+  "skills": [],
+  "agents": [],
+  "hooks": [],
+  "commands": [],
+  "activationKey": "messaging.enabled",
+  "config": {
+    "messaging.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Master toggle. Default-off + BETA: escalation, interview, and the doorbell are inert unless this is true. When false, behaviour is exactly as today."
+    },
+    "messaging.escalation.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, executors dispatched by GSD orchestrators receive the escalation brief template (references/escalation-query-channel.md): on a genuine gray-area decision they may send a scoped query to their injected orchestrator address instead of guessing, and resume on the reply. Query/answer only, never mid-commit steering (the determinism firewall). Requires messaging.enabled."
+    },
+    "messaging.doorbell.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, /gsd-extract-learnings appends a ringer step: after writing the learning to the durable store, the (interactive) session rings self-owned sibling GSD sessions to re-read the store now. The message is a doorbell only; the learning itself is never sent. Requires messaging.enabled."
+    },
+    "messaging.doorbell.sibling_filter": {
+      "type": "string",
+      "default": "gsd-*",
+      "description": "Glob matched against ListAgents session names to select which self-owned sessions receive the doorbell. Bounds the blast radius so the ringer never messages unrelated peers. Only same-user interactive sessions are ever considered."
+    },
+    "messaging.min_claude_code_version": {
+      "type": "string",
+      "default": "2.1.224",
+      "description": "Minimum Claude Code version required to activate any messaging feature (stable session resume + cross-session messaging). Fails closed to no-op on any runtime reporting an older or unknown version. Platform additionally gated to macOS/Linux."
+    }
+  },
+  "steps": [],
+  "contributions": [],
+  "gates": []
+}
