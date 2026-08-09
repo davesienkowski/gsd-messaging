@@ -36,9 +36,14 @@ test('common envelope is well-formed', () => {
   assert.match(cap.version, SEMVER, 'version must be strict semver');
 });
 
-test('runtimeCompat restricts to claude', () => {
+test('runtimeCompat is wildcard with a claude-orientation note', () => {
+  // A third-party capability cannot pin supported to the first-party "claude" runtime id: install-time
+  // cross-capability validation only knows runtime roles in the third-party scope, so ["claude"] is
+  // rejected as an unknown runtime. The convention (projects-sync, tdd, security) is ["*"] + a runtime
+  // note + graceful fallback where messaging is absent.
   assert.ok(cap.runtimeCompat && Array.isArray(cap.runtimeCompat.supported));
-  assert.deepEqual(cap.runtimeCompat.supported, ['claude'], 'this capability is claude-only');
+  assert.deepEqual(cap.runtimeCompat.supported, ['*'], 'wildcard so it is installable; claude-oriented via notes');
+  assert.ok(cap.runtimeCompat.notes && typeof cap.runtimeCompat.notes['*'] === 'string', 'must document its claude orientation');
 });
 
 test('feature body arrays are present', () => {

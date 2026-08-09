@@ -11,9 +11,12 @@
   },
   "runtimeCompat": {
     "supported": [
-      "claude"
+      "*"
     ],
-    "unsupported": []
+    "unsupported": [],
+    "notes": {
+      "*": "Designed for Claude Code: escalation and interview require its cross-session messaging (SendMessage/ListAgents). Installs on any runtime but is inert where messaging is absent - the injected executor instruction falls back to the normal checkpoint-return. A third-party capability cannot pin supported to the first-party 'claude' runtime id (install-time cross-capability validation only sees third-party runtime roles), so the wildcard plus runtime fallback is the correct expression of 'Claude-oriented, degrades elsewhere'."
+    }
   },
   "skills": [],
   "agents": [],
