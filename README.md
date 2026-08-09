@@ -45,22 +45,69 @@ events, which makes it even thinner than a hook-based capability.
    `capabilities/messaging/references/afk-decider.md`, `templates/afk-decider.md`,
    `policy/afk-decision-policy.example.json`, and `scripts/afk-decision-log.cjs`.
 
-## Install
+## Install and enable
 
-    gsd capability install messaging      # from a checkout of this repo
+Install from the repo (declarative-only - it ships **no executable hook**, so there is no consent
+prompt, unlike a hook-based capability):
 
-Then enable what you want (all default-off):
+```
+gsd capability install https://github.com/davesienkowski/gsd-messaging --scope global --yes
+# or from a local checkout:
+gsd capability install <path-to-repo>/capabilities/messaging --scope global --yes
+```
 
-    gsd config set messaging.enabled true
-    gsd config set messaging.escalation.enabled true
-    gsd config set messaging.doorbell.enabled true
-    gsd config set messaging.afk.enabled true          # autonomous decider + audit log (advanced)
+Then enable the master toggle **and** the feature you want. **Both are required** - the escalation
+contribution stays inactive until `messaging.enabled` **and** `messaging.escalation.enabled` are both
+true:
 
-`settings.snippet.json` shows the same toggles for manual/federated config. There is no Claude Code
-`settings.json` hook to register - this capability ships none.
+```
+gsd-tools capability set messaging --gate messaging.enabled=true --gate messaging.escalation.enabled=true --scope global
+```
 
-The AFK feature also reads `messaging.afk.policy_path` (copy `policy/afk-decision-policy.example.json`
-there and tune) and appends to `messaging.afk.audit_log_path`.
+`--gate` only accepts booleans. Non-boolean keys (paths, globs) are set as config values, which write
+to `~/.gsd/defaults.json` (global) or a project's `.planning/config.json`:
+
+```
+gsd-tools config set messaging.afk.policy_path ~/.gsd/afk-decision-policy.json
+```
+
+### Verify it is active
+
+```
+gsd-tools capability state --raw     # find "messaging" -> active: true
+gsd-tools loop render-hooks execute:wave:pre --raw   # output should contain the escalation fragment
+```
+
+When active, every gsd-executor gets the escalation + interview instructions at the start of each
+execute-phase wave, in **all** your sessions, at their next `/gsd-execute-phase` (loop hooks render
+fresh each run - no per-session step). The capability lives in `~/.gsd/capabilities/messaging/` and
+**survives a gsd-core reinstall**. Remove with `gsd-tools capability remove messaging`.
+
+### What installing does - and does NOT - wire
+
+Installing + enabling makes **escalation and interview** auto-fire (a loop-point contribution into the
+executor). It does **not** wire the **doorbell** or **AFK** behaviors: those must fire from GSD
+workflows (`/gsd-extract-learnings`, `/gsd-autonomous`) that a capability *cannot* edit. This repo
+ships their conventions, receiver template, policy, and the audit-log tool; making them fire requires
+a workflow-wiring step (a local runtime mod that patches those two workflows, or an upstream gsd-core
+change). Until you do that, the doorbell and AFK are documented, tested patterns you or your
+orchestrator invoke - not automatic behaviors. Escalation is the one that is turnkey.
+
+### Config keys
+
+All default-off / safe. Set booleans with `capability set --gate` or `config set`; set the rest with
+`config set` (or edit `~/.gsd/defaults.json` / `.planning/config.json`).
+
+| Key | Type | Default | What it does |
+|---|---|---|---|
+| `messaging.enabled` | bool | `false` | Master toggle. Everything is inert until this is true. |
+| `messaging.escalation.enabled` | bool | `false` | Auto-inject the escalation + interview instructions into the executor. |
+| `messaging.doorbell.enabled` | bool | `false` | Gate for the learning doorbell (needs the workflow-wiring step above). |
+| `messaging.doorbell.sibling_filter` | string | `gsd-*` | Which self-owned session names receive a doorbell. Bounds the blast radius. |
+| `messaging.afk.enabled` | bool | `false` | Gate for AFK checkpoint delegation (needs the workflow-wiring step above). |
+| `messaging.afk.policy_path` | string | `.planning/afk-decision-policy.json` | The scoped decision policy the AFK decider classifies against. Copy `policy/afk-decision-policy.example.json` and tune. |
+| `messaging.afk.audit_log_path` | string | `.planning/afk-decisions.jsonl` | Append-only log of every unattended decision. Review with `scripts/afk-decision-log.cjs verify`. |
+| `messaging.min_claude_code_version` | string | `2.1.224` | Version floor; fails closed below it. |
 
 ## Try it
 
@@ -68,6 +115,46 @@ there and tune) and appends to `messaging.afk.audit_log_path`.
     npm run sessions         # the read-only session dashboard
 
 `examples/walkthrough.md` reproduces the escalation, interview, and doorbell flows by hand.
+
+## The `/gsd-sessions` dashboard - seeing and attaching to sessions
+
+`capabilities/messaging/sessions/gsd-sessions.mjs` is a **read-only** conductor view of every Claude
+Code session on this machine, correlated with each one's GSD phase and remaining-context %, **sorted
+closest-to-limit first**. It only reads (`claude agents --json`, each session's `STATE.md`, the
+statusline context bridge); it never sends a message.
+
+```
+npm run sessions                 # table view
+npm run sessions -- --json        # JSON, for scripting
+# or directly, from anywhere:
+node <path-to-repo>/capabilities/messaging/sessions/gsd-sessions.mjs
+```
+
+It pairs naturally with [`gsd-handover`](https://github.com/davesienkowski/gsd-handover): the row
+nearest its watermark is the one about to hand off, and the successor shows up as a `background`
+session named `gsd-handover-<phase>`.
+
+### Native ways to see your sessions
+
+The dashboard is a convenience over Claude Code's own commands, which you can always use directly:
+
+```
+claude agents                    # interactive agent view: watch/monitor all background + interactive sessions
+claude agents --json              # same, as JSON (rows carry id, name, sessionId, kind, state, cwd)
+claude agents --json --all        # also include completed sessions
+claude agents --cwd ~/path/to/repo   # only sessions started under a directory
+```
+
+### Attach to a background session (e.g. a handover successor)
+
+```
+claude --resume <sessionId>       # attach to a specific session from a shell
+claude --resume                    # or open the interactive picker and choose it
+```
+
+Or, from **inside** a running Claude Code session, type the `/resume` slash command to open the same
+picker and switch without leaving your terminal. Attaching is optional - a background session keeps
+running whether or not you attach.
 
 ## Two substrate gotchas baked into the conventions
 
