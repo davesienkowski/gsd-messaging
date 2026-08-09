@@ -63,6 +63,11 @@
       "type": "string",
       "default": ".planning/afk-decisions.jsonl",
       "description": "Path (relative to the project root) of the append-only AFK decision audit log. Every unattended decision - auto or escalated - is recorded here via scripts/afk-decision-log.cjs. Review with `afk-decision-log.cjs verify`."
+    },
+    "messaging.coordination.ledger_path": {
+      "type": "string",
+      "default": ".planning/coordination.jsonl",
+      "description": "Path (relative to the project root) of the append-only coordination ledger: the session's open escalations and coordination peers. When escalation is enabled, the executor records edges here (scripts/coordination-ledger.cjs), so a gsd-handover successor can re-establish them instead of losing the answer. Read-only for gsd-handover; see references/coordination-ledger.md for the shared schema."
     }
   },
   "steps": [],

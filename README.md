@@ -205,6 +205,21 @@ autonomous. See `capabilities/messaging/references/afk-decider.md`.
 Still out of scope: durable coordination (locks, intents, ledgers) belongs in `.planning` /
 `fleet_*`, not messaging.
 
+## Coordination ledger (the bridge to gsd-handover)
+
+A handover preserves the *work* but severs the *conversation*: a successor inherits the job but not the
+open questions or the peers, so an answer the dying session was waiting on is sent to a dead address and
+lost. This capability closes that gap by recording coordination edges to an append-only ledger
+(`.planning/coordination.jsonl`, `scripts/coordination-ledger.cjs`): when escalation is enabled, the
+executor appends an entry as it escalates and a `resolved` entry when answered.
+
+[`gsd-handover`](https://github.com/davesienkowski/gsd-handover) reads that ledger to build a
+`## Coordination` section into its baton, and its successor re-establishes each open edge (re-announce)
+and verifies it caught the baton (interview). The ledger is the shared contract between the two
+capabilities - schema in `references/coordination-ledger.md`. Install either alone and it fail-opens:
+no ledger => an empty coordination section => today's behaviour.
+
 ## Status
 
-BETA, `0.1.0`. Validated by spike (design brief steps 4-8). MIT licensed.
+BETA, `0.1.0`. Validated by spike (design brief steps 4-8) + a live coordination-baton round-trip. MIT
+licensed.

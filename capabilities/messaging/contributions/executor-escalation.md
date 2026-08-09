@@ -10,6 +10,14 @@ checkpoint:
   orchestrator still sees it if the live message is dropped.
 - End your turn. You will be resumed when the reply arrives; continue then, applying ONLY the scoped
   answer to your question.
+- RECORD the open edge in the coordination ledger, so a handover can carry it if this session dies
+  while you are waiting. Append one entry (the ledger path is `messaging.coordination.ledger_path`,
+  default `.planning/coordination.jsonl`):
+
+      node <messaging-cap>/scripts/coordination-ledger.cjs append --file "<ledger-path>" --json \
+        '{"ts":"<ISO>","kind":"escalation","status":"open","id":"<your-escalation-id>","question":"<the question>","address":"<who you asked>","scope":"in-session"}'
+
+  When the answer arrives, append a matching `{"kind":"escalation","status":"resolved","id":"<same id>","address":"<same>","ts":"<ISO>"}`. If the ledger tool is unavailable, skip this step silently - it is a durability aid, never a blocker.
 
 This complements deviation RULE 4 (stop-and-return): prefer live escalation when a full
 checkpoint-return would needlessly stall you while other waves run, and fall back to the normal

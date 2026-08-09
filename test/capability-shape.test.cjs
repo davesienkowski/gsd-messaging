@@ -88,6 +88,8 @@ test('documented payload files exist on disk', () => {
     'templates/doorbell-receiver-convention.md',
     'policy/afk-decision-policy.example.json',
     'scripts/afk-decision-log.cjs',
+    'scripts/coordination-ledger.cjs',
+    'references/coordination-ledger.md',
     'contributions/executor-escalation.md',
     'sessions/gsd-sessions.mjs',
   ];
